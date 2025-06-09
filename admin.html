@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Whistle Wallet Admin Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    select {
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Admin Dashboard - Complaints</h1>
+
+<table id="complaints-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Category</th>
+      <th>Description</th>
+      <th>Status</th>
+      <th>Update Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Complaints will load here -->
+  </tbody>
+</table>
+
+<script type="module">
+  // Your Supabase credentials here
+  const SUPABASE_URL = 'https://veywaowqyrjgebgtcrhb.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZleXdhb3dxeXJqZ2ViZ3RjcmhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjQyNDYsImV4cCI6MjA2MzU0MDI0Nn0.VQGz6x5NCViKooxZB0n3dF0G08HSo_3eDvRPWzCN9Wc';
+
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  const supabase = createClient('https://veywaowqyrjgebgtcrhb.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZleXdhb3dxeXJqZ2ViZ3RjcmhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjQyNDYsImV4cCI6MjA2MzU0MDI0Nn0.VQGz6x5NCViKooxZB0n3dF0G08HSo_3eDvRPWzCN9Wc');
+
+  // Fetch all complaints from Supabase
+  async function loadComplaints() {
+    const { data, error } = await supabase
+      .from('Complaints')
+      .select('*')
+      .order('Created_at', { ascending: false });
+
+    if (error) {
+      alert('Error loading complaints: ' + error.message);
+      return;
+    }
+
+    const tbody = document.querySelector('#complaints-table tbody');
+    tbody.innerHTML = ''; // clear old rows
+
+    data.forEach(complaint => {
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td>${complaint.Name}</td>
+        <td>${complaint.Email}</td>
+        <td>${complaint.Category}</td>
+        <td>${complaint.Description}</td>
+        <td>${complaint.Status}</td>
+        <td>
+          <select data-id="${complaint.id}" class="status-select">
+            <option value="Pending" ${complaint.Status === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option value="Resolved" ${complaint.Status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+          </select>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+    // Add event listeners for all select boxes
+    document.querySelectorAll('.status-select').forEach(select => {
+      select.addEventListener('change', async (e) => {
+        const newStatus = e.target.value;
+        const id = e.target.getAttribute('data-id');
+
+        // Update status in Supabase
+        const { error } = await supabase
+          .from('Complaints')
+          .update({ Status: newStatus })
+          .eq('id', id);
+
+        if (error) {
+          alert('Error updating status: ' + error.message);
+        } else {
+          alert('Status updated successfully!');
+          loadComplaints(); // reload table to reflect changes
+        }
+      });
+    });
+  }
+
+  // Load complaints when page loads
+  window.onload = loadComplaints;
+</script>
+
+</body>
+</html>

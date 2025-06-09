@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Whistle Wallet</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #7F00FF, #00BFFF);
+      padding: 0;
+      margin: 0;
+      color: #333;
+    }
+
+    #welcome {
+      font-size: 2.5rem;
+      text-align: center;
+      padding: 80px 20px 20px;
+      color: white;
+      opacity: 1;
+      transition: opacity 1s ease;
+    }
+
+    #complaint-form {
+      display: none;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 600px;
+      margin: 40px auto;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    #form-title {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 25px;
+      color: #7F00FF;
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #7F00FF;
+    }
+
+    button {
+      margin-top: 25px;
+      background: #7F00FF;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #5a00cc;
+    }
+  </style>
+</head>
+<body>
+
+<div id="welcome">Welcome to MITS Whistle Wallet</div>
+
+<form id="complaint-form">
+  <div id="form-title">📢 Register Your Complaint</div>
+
+  <label for="name">Name</label>
+  <input type="text" id="name" required />
+
+  <label for="email">College Email (@mits.ac.in)</label>
+  <input type="email" id="email" pattern=".+@mits\.ac\.in" required />
+
+  <label for="department">Department</label>
+  <input type="text" id="department" required />
+
+  <label for="gender">Gender</label>
+  <select id="gender" required>
+    <option value="">Select</option>
+    <option>Male</option>
+    <option>Female</option>
+    <option>Other</option>
+  </select>
+
+  <label for="category">Complaint Type</label>
+  <select id="category" required>
+    <option value="">Select</option>
+    <option>Mess</option>
+    <option>Faculty</option>
+    <option>Student</option>
+    <option>Ragging</option>
+    <option>Transport</option>
+    <option>Academics</option>
+    <option>Harassment</option>
+    <option>Infrastructure</option>
+    <option>Other</option>
+  </select>
+
+  <label for="file">Attach Photo (optional)</label>
+  <input type="file" id="file" accept="image/*" />
+
+  <label for="description">Complaint Description</label>
+  <textarea id="description" rows="4" required></textarea>
+
+  <button type="submit">Submit Complaint</button>
+</form>
+
+<script type="module">
+  const welcome = document.getElementById('welcome');
+  const form = document.getElementById('complaint-form');
+
+  setTimeout(() => {
+    welcome.style.opacity = '0';
+    setTimeout(() => {
+      welcome.style.display = 'none';
+      form.style.display = 'block';
+    }, 1000);
+  }, 2000);
+
+  const SUPABASE_URL = 'https://veywaowqyrjgebgtcrhb.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZleXdhb3dxeXJqZ2ViZ3RjcmhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjQyNDYsImV4cCI6MjA2MzU0MDI0Nn0.VQGz6x5NCViKooxZB0n3dF0G08HSo_3eDvRPWzCN9Wc';
+
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  document.getElementById('complaint-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const department = document.getElementById('department').value.trim();
+    const gender = document.getElementById('gender').value;
+    const category = document.getElementById('category').value;
+    const description = document.getElementById('description').value.trim();
+    const fileInput = document.getElementById('file');
+    const file = fileInput.files[0];
+
+    let fileUrl = '';
+    if (file) {
+      const { data, error } = await supabase.storage.from('complaints-files').upload(`files/${Date.now()}_${file.name}`, file);
+      if (error) {
+        alert('File upload failed');
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('complaints-files').getPublicUrl(data.path);
+      fileUrl = urlData.publicUrl;
+    }
+
+   const { error } = await supabase.from('Complaints').insert([{
+  Name: name,
+  Email: email,
+  Department: department,
+  Gender: gender,
+  Category: category,
+  Description: description,
+  Anonymous: false,
+  Created_at: new Date().toISOString(),
+  Status: "Pending",
+  Upload_File: fileUrl
+}]);
+
+    if (error) {
+      alert('Error submitting complaint!');
+      console.error(error);
+    } else {
+      alert('Complaint submitted successfully!');
+      form.reset();
+    }
+  });
+</script>
+<p style="text-align:center; margin-top:20px;">
+  <a href="login.html">Go to Admin Dashboard</a>
+</p>
+
+</body>
+</html>
